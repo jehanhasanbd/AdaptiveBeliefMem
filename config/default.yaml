@@ -1,0 +1,57 @@
+# config/default.yaml
+base_model: "Qwen/Qwen2.5-3B-Instruct"
+model_type: "causal_lm"
+belief_dim: 768
+hidden_dim: 256
+
+quantization:
+  load_in_4bit: true
+  bnb_4bit_compute_dtype: "float16"
+  bnb_4bit_quant_type: "nf4"
+  bnb_4bit_use_double_quant: true
+
+training:
+  batch_size: 1
+  gradient_accumulation_steps: 4
+  learning_rate: 2e-5
+  num_epochs: 10
+  warmup_steps: 100
+  weight_decay: 0.01
+  max_seq_length: 2048
+  max_sessions: 10
+  save_steps: 500
+  eval_steps: 100
+  logging_steps: 10
+  max_grad_norm: 1.0
+
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.1
+  target_modules: ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+
+loss_weights:
+  task: 1.0
+  uncertainty: 0.5
+  sparsity: 0.1
+  compression: 0.2
+
+threshold:
+  initial: 0.3
+  final: 0.7
+  anneal_steps: 500
+
+top_k:
+  dynamic: true
+  base_k: 3
+
+data:
+  train_file: "data/processed/train.json"
+  val_file: "data/processed/val.json"
+  test_file: "data/processed/test.json"
+
+output:
+  checkpoint_dir: "outputs/checkpoints"
+  log_dir: "outputs/logs"
+  result_dir: "outputs/results"
+  trace_dir: "outputs/traces"
