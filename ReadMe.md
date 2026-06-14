@@ -666,3 +666,14 @@ python scripts/test_setup.py
 ```angular2html
 python src/training/train_3b_optimized.py
 ```
+
+```angular2html
+# Train for 5 epochs (takes ~1-2 hours total)
+python src/training/train_3b_optimized_full.py --epochs 5
+
+# Test the trained model
+python scripts/test_trained_model.py
+
+# Run final evaluation
+python scripts/final_evaluation.py
+```

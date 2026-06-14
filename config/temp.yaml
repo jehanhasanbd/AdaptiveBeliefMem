@@ -1,0 +1,55 @@
+base_model: Qwen/Qwen2.5-3B-Instruct
+belief_dim: 768
+data:
+  test_file: data/processed/test.json
+  train_file: data/processed/train.json
+  val_file: data/processed/val.json
+hidden_dim: 256
+lora:
+  alpha: 32
+  dropout: 0.1
+  r: 16
+  target_modules:
+  - q_proj
+  - k_proj
+  - v_proj
+  - o_proj
+  - gate_proj
+  - up_proj
+  - down_proj
+loss_weights:
+  compression: 0.2
+  sparsity: 0.1
+  task: 1.0
+  uncertainty: 0.5
+model_type: causal_lm
+output:
+  checkpoint_dir: outputs/checkpoints
+  log_dir: outputs/logs
+  result_dir: outputs/results
+  trace_dir: outputs/traces
+quantization:
+  bnb_4bit_compute_dtype: float16
+  bnb_4bit_quant_type: nf4
+  bnb_4bit_use_double_quant: true
+  load_in_4bit: true
+threshold:
+  anneal_steps: 500
+  final: 0.7
+  initial: 0.3
+top_k:
+  base_k: 3
+  dynamic: true
+training:
+  batch_size: 1
+  eval_steps: 100
+  gradient_accumulation_steps: 4
+  learning_rate: 2.0e-05
+  logging_steps: 10
+  max_grad_norm: 1.0
+  max_seq_length: 2048
+  max_sessions: 10
+  num_epochs: 5
+  save_steps: 500
+  warmup_steps: 100
+  weight_decay: 0.01

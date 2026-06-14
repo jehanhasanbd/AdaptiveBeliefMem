@@ -1,0 +1,37 @@
+{
+  "open_domain": {
+    "accuracy": 0.25,
+    "f1_score": 0.0,
+    "f1_std": 0.0,
+    "total": 8,
+    "correct": 2
+  },
+  "all": {
+    "accuracy": 0.25,
+    "f1_score": 0.0,
+    "f1_std": 0.0,
+    "total": 20,
+    "correct": 5
+  },
+  "adversarial": {
+    "accuracy": 0.3333333333333333,
+    "f1_score": 0.0,
+    "f1_std": 0.0,
+    "total": 6,
+    "correct": 2
+  },
+  "temporal_reasoning": {
+    "accuracy": 0.2,
+    "f1_score": 0.0,
+    "f1_std": 0.0,
+    "total": 5,
+    "correct": 1
+  },
+  "multi_hop": {
+    "accuracy": 0.0,
+    "f1_score": 0.0,
+    "f1_std": 0.0,
+    "total": 1,
+    "correct": 0
+  }
+}

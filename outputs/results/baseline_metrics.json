@@ -1,0 +1,114 @@
+{
+  "random_baseline": {
+    "open_domain": {
+      "accuracy": 0.06896551724137931,
+      "f1_score": 0.18358339065452145,
+      "f1_std": 0.26484386644321684,
+      "bleu_score": 0.06951399327280096,
+      "bleu_std": 0.18499364421916276,
+      "total_examples": 116,
+      "correct": 8
+    },
+    "all": {
+      "accuracy": 0.11371237458193979,
+      "f1_score": 0.2122681534388195,
+      "f1_std": 0.32741005698497727,
+      "bleu_score": 0.08914508279510192,
+      "bleu_std": 0.20847595881260247,
+      "total_examples": 299,
+      "correct": 34
+    },
+    "adversarial": {
+      "accuracy": 0.09523809523809523,
+      "f1_score": 0.09523809523809523,
+      "f1_std": 0.2935435239509036,
+      "bleu_score": 0.030116930096841715,
+      "bleu_std": 0.09282661280770443,
+      "total_examples": 84,
+      "correct": 8
+    },
+    "temporal_reasoning": {
+      "accuracy": 0.2857142857142857,
+      "f1_score": 0.3206737706737707,
+      "f1_std": 0.41013400855570886,
+      "bleu_score": 0.24798839850061036,
+      "bleu_std": 0.3992196954948517,
+      "total_examples": 14,
+      "correct": 4
+    },
+    "multi_hop": {
+      "accuracy": 0.11904761904761904,
+      "f1_score": 0.42982586196871914,
+      "f1_std": 0.31605818524872414,
+      "bleu_score": 0.1380699409910396,
+      "bleu_std": 0.1536471779937492,
+      "total_examples": 42,
+      "correct": 5
+    },
+    "single_hop": {
+      "accuracy": 0.20930232558139536,
+      "f1_score": 0.2704740830270594,
+      "f1_std": 0.39126912307634726,
+      "bleu_score": 0.1579106815656662,
+      "bleu_std": 0.30819410591272717,
+      "total_examples": 43,
+      "correct": 9
+    }
+  },
+  "majority_baseline": {
+    "open_domain": {
+      "accuracy": 0.10344827586206896,
+      "f1_score": 0.20480203586773368,
+      "f1_std": 0.29055951945275693,
+      "bleu_score": 0.10710718400911914,
+      "bleu_std": 0.26492982060607007,
+      "total_examples": 116,
+      "correct": 12
+    },
+    "all": {
+      "accuracy": 0.09364548494983277,
+      "f1_score": 0.18547138538476524,
+      "f1_std": 0.30421197947850426,
+      "bleu_score": 0.08011680679673441,
+      "bleu_std": 0.20744976780041913,
+      "total_examples": 299,
+      "correct": 28
+    },
+    "adversarial": {
+      "accuracy": 0.07142857142857142,
+      "f1_score": 0.07142857142857142,
+      "f1_std": 0.2575393768188563,
+      "bleu_score": 0.022587697572631286,
+      "bleu_std": 0.0814411017927956,
+      "total_examples": 84,
+      "correct": 6
+    },
+    "temporal_reasoning": {
+      "accuracy": 0.14285714285714285,
+      "f1_score": 0.27089161074729834,
+      "f1_std": 0.35067960920016056,
+      "bleu_score": 0.12686071508943023,
+      "bleu_std": 0.25998497752372296,
+      "total_examples": 14,
+      "correct": 2
+    },
+    "multi_hop": {
+      "accuracy": 0.11904761904761904,
+      "f1_score": 0.3877482306053735,
+      "f1_std": 0.33070041675845335,
+      "bleu_score": 0.13343580115074694,
+      "bleu_std": 0.18359382719634512,
+      "total_examples": 42,
+      "correct": 5
+    },
+    "single_hop": {
+      "accuracy": 0.06976744186046512,
+      "f1_score": 0.13072092636046123,
+      "f1_std": 0.2599629874202616,
+      "bleu_score": 0.05239003794142668,
+      "bleu_std": 0.17125570935018375,
+      "total_examples": 43,
+      "correct": 3
+    }
+  }
+}

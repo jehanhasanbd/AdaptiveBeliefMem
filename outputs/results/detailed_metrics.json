@@ -1,0 +1,44 @@
+{
+  "open_domain": {
+    "accuracy": 0.0,
+    "f1_score": 0.0,
+    "f1_std": 0.0,
+    "total_examples": 22,
+    "correct": 0
+  },
+  "all": {
+    "accuracy": 0.0,
+    "f1_score": 0.0,
+    "f1_std": 0.0,
+    "total_examples": 50,
+    "correct": 0
+  },
+  "adversarial": {
+    "accuracy": 0.0,
+    "f1_score": 0.0,
+    "f1_std": 0.0,
+    "total_examples": 12,
+    "correct": 0
+  },
+  "temporal_reasoning": {
+    "accuracy": 0.0,
+    "f1_score": 0.0,
+    "f1_std": 0.0,
+    "total_examples": 6,
+    "correct": 0
+  },
+  "multi_hop": {
+    "accuracy": 0.0,
+    "f1_score": 0.0,
+    "f1_std": 0.0,
+    "total_examples": 5,
+    "correct": 0
+  },
+  "single_hop": {
+    "accuracy": 0.0,
+    "f1_score": 0.0,
+    "f1_std": 0.0,
+    "total_examples": 5,
+    "correct": 0
+  }
+}
