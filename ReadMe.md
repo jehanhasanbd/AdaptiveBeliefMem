@@ -659,3 +659,10 @@ copies or substantial portions of the Software.
 ---
 
 *All source files are fully implemented and tested on RTX 3060 12GB VRAM. This README provides a self‑contained guide to reproduce all results from scratch.*
+
+```angular2html
+python scripts/test_setup.py
+```
+```angular2html
+python src/training/train_3b_optimized.py
+```
