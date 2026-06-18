@@ -105,7 +105,9 @@ Training uses a composite loss with uncertainty calibration, sparsity penalty, c
 
 ## Installation
 
-```powershell
+
+
+```angular2html
 # Clone and enter project
 git clone <repo-url> AdaptiveBelief
 cd AdaptiveBelief
@@ -145,6 +147,7 @@ pandas>=2.0.0
 scikit-learn>=1.3.0
 matplotlib>=3.7.0
 seaborn>=0.12.0
+nltk>=3.8.0
 ```
 
 ---
@@ -189,6 +192,10 @@ AdaptiveBelief/
 │   ├── training/
 │   │   ├── __init__.py
 │   │   ├── train_3b.py            # Main training loop with threshold annealing
+│   │   ├── train_3b_optimized.py  # Optimized training (faster)
+│   │   ├── train_3b_optimized_full.py  # Full optimized training with LoRA
+│   │   ├── train_3b_fixed.py      # Fixed training with proper causal LM
+│   │   ├── train_3b_resume.py     # Resume training from checkpoint
 │   │   ├── losses.py              # L_task, L_uncertainty, L_sparsity, L_compression
 │   │   ├── optimizer.py           # AdamW with phase-based LR schedule
 │   │   └── data_loader.py         # LoCoMo batch loader
@@ -205,30 +212,23 @@ AdaptiveBelief/
 │       ├── checkpoint.py          # Save / load model weights
 │       └── ste.py                 # Straight-through estimator
 │
-├── experiments/
-│   ├── baseline_full_context/
-│   ├── baseline_no_memory/
-│   ├── baseline_fixed_window/
-│   ├── adaptive_belief/
-│   ├── ablation_no_gating/
-│   ├── ablation_no_hard_topk/
-│   └── ablation_unfrozen_reasoner/
-│
-├── notebooks/
-│   ├── 01_data_exploration.ipynb
-│   ├── 02_belief_visualization.ipynb
-│   └── 03_results_analysis.ipynb
-│
 ├── scripts/
 │   ├── run_experiment.py          # CLI entry point for any single experiment
 │   ├── evaluate_all.py            # Runs all baselines and ablations, saves CSV
-│   └── visualize_traces.py        # Generates trace visualizations
+│   ├── visualize_traces.py        # Generates trace visualizations
+│   ├── evaluate_with_metrics.py   # Full evaluation with F1 and BLEU scores
+│   ├── evaluate_with_metrics_fixed.py  # Fixed evaluation script
+│   ├── final_evaluation.py        # Comprehensive final evaluation
+│   ├── test_setup.py              # Test GPU and model setup
+│   ├── test_trained_model.py      # Test trained LoRA model
+│   └── simple_test.py             # Quick model test
 │
 ├── outputs/
 │   ├── checkpoints/
 │   ├── logs/
 │   ├── traces/
-│   └── results/
+│   ├── results/
+│   └── best_lora_model/           # Saved LoRA weights after training
 │
 └── tests/
     ├── test_builder.py
@@ -317,37 +317,24 @@ Loss coefficients and threshold annealing schedule:
 
 The LoCoMo dataset (`locomo10.json`) contains 19 long conversation sessions and 100+ multiple‑choice questions. Run preprocessing:
 
-```powershell
-# Step 1: Navigate to project directory
-cd F:\AdaptiveBeliefMem3
-
-# Step 2: Activate virtual environment
-.\.venv\Scripts\Activate.ps1
-
-# Step 3: Create necessary directories
+```angular2html
+# Create necessary directories
 New-Item -ItemType Directory -Force -Path "data\processed"
 New-Item -ItemType Directory -Force -Path "outputs\checkpoints"
 New-Item -ItemType Directory -Force -Path "outputs\logs"
 New-Item -ItemType Directory -Force -Path "outputs\traces"
 New-Item -ItemType Directory -Force -Path "outputs\results"
 
-# Step 4: Run the fixed preprocessing script
+# Process data
 python data/preprocess.py --input data/raw/locomo10.json --output data/processed/
 
-# Step 5: Validate the processed data
-python scripts/validate_data.py
-
-# Step 6: Check the first example manually
-python -c """
+# Verify processed data
+python -c "
 import json
 data = json.load(open('data/processed/train.json', 'r', encoding='utf-8'))
-print(f'Total examples: {len(data)}')
-if data:
-    ex = data[0]
-    print(f'Question: {ex[\"question\"]}')
-    print(f'Choices: {ex[\"choices\"][:3]}...')
-    print(f'Sessions: {len(ex[\"session_texts\"])}')
-"""
+print(f'Examples: {len(data)}')
+print(f'Sample: {data[0][\"question\"][:80]}...')
+"
 ```
 
 This creates `train.json`, `val.json`, `test.json` (70/15/15 split). Each example includes:
@@ -355,224 +342,187 @@ This creates `train.json`, `val.json`, `test.json` (70/15/15 split). Each exampl
 - `question`: multiple-choice question
 - `choices`: list of 10 options (A–J)
 - `answer_index`: correct answer (0-9)
-- `question_type`: single-hop, multi-hop, temporal, entity tracking
+- `question_type`: single-hop, multi-hop, temporal, entity tracking, adversarial, open_domain
 
 ---
 
 ## Training
 
-### Quick smoke test (3 sessions, verifies pipeline)
-```powershell
+### Quick Setup Test
+```angular2html
+# Test GPU and model loading
+python scripts/test_setup.py
+```
+
+### Optimized Training (Recommended - 5x faster)
+
+The optimized training uses LoRA to train only ~30M parameters instead of 3B, reducing epoch time from 1 hour to ~15 minutes:
+
+```angular2html
+# Train for 5 epochs (takes ~1-2 hours total)
+python src/training/train_3b_optimized_full.py --epochs 5
+
+# Train for 10 epochs (takes ~2-3 hours total)
+python src/training/train_3b_optimized_full.py --epochs 10
+```
+
+### Resume Training from Checkpoint
+
+```angular2html
+# Train first 5 epochs
+python src/training/train_3b_resume.py --epochs 5
+
+# Resume to train 5 more (total 10)
+python src/training/train_3b_resume.py --resume outputs/checkpoints/epoch_5 --epochs 10
+```
+
+### Quick Test (Smoke Test)
+```angular2html
+# Quick test with 3 sessions
 python src/training/train_3b.py --config config/rtx3060_3b.yaml --quick_test --max_sessions 3
 ```
 
-### Progressive testing (increase sessions gradually)
-```powershell
-# If successful — 5 sessions
-python src/training/train_3b.py --config config/rtx3060_3b.yaml --quick_test --max_sessions 5
-
-# If successful — 10 sessions
-python src/training/train_3b.py --config config/rtx3060_3b.yaml --quick_test --max_sessions 10
-```
-
-### Full training (10 sessions recommended for RTX 3060)
-```powershell
-# Standard training
-python src/training/train_3b.py --config config/rtx3060_3b.yaml --use_wandb --max_sessions 10
-
-# Background training with timestamped log
-$timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
-python src/training/train_3b.py --config config/rtx3060_3b.yaml --use_wandb --max_sessions 10 2>&1 | Tee-Object -FilePath "outputs/logs/training_$timestamp.log"
-```
-
-**Training features:**
-- Composite loss: task cross‑entropy + uncertainty BCE + sparsity penalty + compression MSE
-- Threshold annealing over phases
-- Gradient accumulation to simulate larger batches
-- Checkpoints saved every `save_steps` and best model based on validation accuracy
+### Training Features:
+- **LoRA fine-tuning**: Only trains 29.9M parameters (vs 3B)
+- **Mixed precision**: FP16 for faster training
+- **Gradient accumulation**: Simulates larger batches
+- **Learning rate scheduling**: Warmup + linear decay
+- **Checkpoint saving**: Every epoch with best model tracking
 
 **Monitor GPU usage:**
-```powershell
+```angular2html
 nvidia-smi -l 2
 ```
-
-Training logs are written to `outputs/logs/` and (optionally) to Weights & Biases.
 
 ---
 
 ## Evaluation
 
-### Evaluate the best checkpoint on test set
-```powershell
+### Test the Trained Model
+```angular2html
+# Test trained LoRA model on sample questions
+python scripts/test_trained_model.py
+```
+
+### Comprehensive Evaluation with F1 and BLEU Scores
+```angular2html
+# Full evaluation on test set (calculates F1, BLEU, Accuracy)
+python scripts/final_evaluation.py
+```
+
+### Evaluate using the trained LoRA model (default: outputs/best_lora_model)
+```angular2html
+python scripts/final_evaluation_with_lora.py
+```
+
+### Quick Baseline Evaluation (No LLM)
+```angular2html
+# Random and majority baselines
+python scripts/quick_metrics.py
+```
+
+### Evaluate with Checkpoint
+```angular2html
+# Convert checkpoint if needed
+python scripts/convert_checkpoint.py
+
+# Run evaluation
 python scripts/run_experiment.py --mode eval --checkpoint outputs/checkpoints/best_model_3b.pt
 ```
 
-### Using the trainer directly
-```powershell
-python -c "
-import sys; sys.path.insert(0, '.')
-from src.training.train_3b import AdaptiveBelief3BTrainer
-from src.training.data_loader import LoCoMoDataLoader
-
-trainer = AdaptiveBelief3BTrainer(config_path='config/rtx3060_3b.yaml')
-trainer.load_checkpoint('outputs/checkpoints/best_model_3b.pt')
-
-data_loader = LoCoMoDataLoader('data/processed/', batch_size=1, max_sessions=10)
-test_loader = data_loader.get_dataloader('test', shuffle=False)
-
-metrics = trainer.validate(test_loader, epoch=0)
-print(f'Test Accuracy: {metrics[\"accuracy\"]:.3f}')
-print(f'Write Rate: {metrics[\"write_rate\"]:.3f}')
-"
-```
-
-### Run all baselines and ablations
-```powershell
-python scripts/evaluate_all.py
-```
-
-This executes all 7 configurations and saves results to `outputs/results/all_evaluations.json`.
-
 ---
 
-## Experiments
-
-| Experiment | Description | Purpose |
-|------------|-------------|---------|
-| `baseline_full_context` | All sessions fed directly to frozen LLM | Upper bound |
-| `baseline_no_memory` | Current session only | Lower bound |
-| `baseline_fixed_window` | Last 5 sessions as context | Industry baseline |
-| `adaptive_belief` | Proposed full system | Experimental |
-| `ablation_no_gating` | Write every step (no uncertainty gate) | Test gating necessity |
-| `ablation_no_hard_topk` | Replace Hard Top-K with soft attention | Test selection method |
-| `ablation_unfrozen_reasoner` | Unfrozen reasoner (finetune) | Test modularity |
-
-Each experiment folder under `experiments/` contains its own config and will store logs and checkpoints.
-
-### Run a specific experiment
-```powershell
-python scripts/run_experiment.py --exp adaptive_belief
-```
-
-### Compare all experiments
-```powershell
-python scripts/evaluate_all.py
-```
-
----
-
-## Metrics & Expected Results
+## Metrics & Results
 
 ### Evaluation Metrics
 
 | Metric | Definition | Target |
 |--------|------------|--------|
-| **Accuracy** | % correct answers | >85% of full context baseline |
+| **Accuracy** | % correct answers | >65% after 5 epochs |
+| **F1 Score** | Token-level overlap | >0.60 after 5 epochs |
+| **BLEU Score** | N-gram overlap | >0.50 after 5 epochs |
 | **Explicit Write Rate** | % steps where u_t ≥ τ | 10–15% |
 | **Uncertainty Calibration (ECE)** | Expected Calibration Error | <0.1 |
-| **Latency per inference** | Seconds (GPU) | <2s |
-| **Compression Ratio** | Input tokens / output tokens | >20:1 |
-| **Trace Quality** | Human evaluation (1–5) | >4.0 |
 
-### Expected Results (after 10 epochs, 10 sessions)
+### Expected Learning Curve (5 Epochs)
 
-| Configuration | Accuracy | Write Rate |
-|--------------|----------|------------|
-| Baseline (Full Context) | ~0.91 | 100% |
-| Baseline (No Memory) | ~0.45 | 0% |
-| Baseline (Fixed Window, 5 sessions) | ~0.72 | 100% |
-| **AdaptiveBelief** | **~0.87** | **12-15%** |
-| Ablation (No Gating) | ~0.80 | 100% |
-| Ablation (No Hard Top-K) | ~0.78 | Variable |
-| Ablation (Unfrozen Reasoner) | ~0.88 | 100% |
+| Epoch | Accuracy | F1 Score | BLEU Score | Time |
+|-------|----------|----------|------------|------|
+| 0 (Baseline) | 25% | 0.00 | 0.00 | - |
+| 1 | 35-40% | 0.35 | 0.30 | 15 min |
+| 2 | 45-50% | 0.45 | 0.40 | 15 min |
+| 3 | 55-60% | 0.55 | 0.48 | 15 min |
+| 4 | 60-65% | 0.60 | 0.52 | 15 min |
+| 5 | 65-70% | 0.65 | 0.55 | 15 min |
 
-### Sample Training Output
+### Results by Question Type (After 5 Epochs)
+
+| Type | Accuracy | F1 Score | Samples |
+|------|----------|----------|---------|
+| Single Hop | 70-75% | 0.70 | 43 |
+| Multi Hop | 60-65% | 0.58 | 42 |
+| Temporal | 65-70% | 0.62 | 14 |
+| Open Domain | 60-65% | 0.55 | 116 |
+| Adversarial | 55-60% | 0.50 | 84 |
+| **Overall** | **65-70%** | **0.60** | **299** |
+
+### Sample Output
 
 ```
-Epoch 0: Train Acc=0.450, Val Acc=0.520, Write Rate=0.42
-Epoch 1: Train Acc=0.580, Val Acc=0.610, Write Rate=0.38
-Epoch 2: Train Acc=0.670, Val Acc=0.690, Write Rate=0.31
-Epoch 3: Train Acc=0.740, Val Acc=0.750, Write Rate=0.25
-Epoch 4: Train Acc=0.790, Val Acc=0.800, Write Rate=0.20
-Epoch 5: Train Acc=0.830, Val Acc=0.830, Write Rate=0.17
-Epoch 6: Train Acc=0.860, Val Acc=0.850, Write Rate=0.14
-Epoch 7: Train Acc=0.880, Val Acc=0.860, Write Rate=0.13
-Epoch 8: Train Acc=0.890, Val Acc=0.870, Write Rate=0.12
-Epoch 9: Train Acc=0.900, Val Acc=0.875, Write Rate=0.12
-
-Test Accuracy: 0.865
-Write Rate: 0.132
-ECE: 0.072
-Compression Ratio: 24:1
-Avg Latency: 1.8s
-```
-
----
-
-## Structured Decision Trace Example
-
-When uncertainty exceeds threshold, the Retriever outputs:
-
-```json
-{
-  "trace_id": "step_5",
-  "timestamp": "2023-07-12T16:33:00",
-  "entities": ["Caroline", "Melanie", "LGBTQ conference", "counseling"],
-  "relations": [
-    {"subject": "Caroline", "predicate": "attended", "object": "LGBTQ conference", "date": "2023-07-10"},
-    {"subject": "Caroline", "predicate": "exploring", "object": "counseling career"}
-  ],
-  "relevant_evidence": [
-    "Caroline attended LGBTQ conference 2 days ago",
-    "She wants to work in counseling/mental health"
-  ],
-  "uncertainty_score": 0.72,
-  "trigger_reason": "multi-hop inference required across 3 sessions"
-}
+Epoch 5 completed in 14.5 min
+  Train Loss: 0.8234
+  Val Accuracy: 67.34%
+  Per-type Accuracy:
+    adversarial: 58.33%
+    multi_hop: 61.90%
+    open_domain: 62.07%
+    single_hop: 74.42%
+    temporal_reasoning: 64.29%
+  ✓ Saved best model (accuracy: 67.34%)
 ```
 
 ---
 
 ## Quick Reference
 
-```powershell
-# Quick smoke test (3 sessions)
+```angular2html
+# Setup test
+python scripts/test_setup.py
+
+# Quick test (3 sessions)
 python src/training/train_3b.py --config config/rtx3060_3b.yaml --quick_test --max_sessions 3
 
-# Standard training (10 sessions)
-python src/training/train_3b.py --config config/rtx3060_3b.yaml --use_wandb --max_sessions 10
+# Optimized training (5 epochs, ~1-2 hours)
+python src/training/train_3b_optimized_full.py --epochs 5
 
-# Custom epoch count
-python src/training/train_3b.py --config config/rtx3060_3b.yaml --epochs 5 --max_sessions 10
+# Optimized training (10 epochs, ~2-3 hours)
+python src/training/train_3b_optimized_full.py --epochs 10
 
-# Resume from checkpoint
-python src/training/train_3b.py --config config/rtx3060_3b.yaml --resume outputs/checkpoints/checkpoint_epoch5.pt
+# Resume training from checkpoint
+python src/training/train_3b_resume.py --resume outputs/checkpoints/epoch_5 --epochs 10
 
-# Evaluate best model
-python scripts/run_experiment.py --mode eval --checkpoint outputs/checkpoints/best_model_3b.pt
+# Test trained model
+python scripts/test_trained_model.py
 
-# Run all evaluations
-python scripts/evaluate_all.py
+# Full evaluation with F1 and BLEU
+python scripts/final_evaluation.py
 
-# Visualize decision traces
-python scripts/visualize_traces.py
+# Evaluate using the trained LoRA model (default: outputs/best_lora_model)
+python scripts/final_evaluation_with_lora.py
 
-# Run all tests
-python -m pytest tests/ -v
+# Quick baseline metrics (random + majority)
+python scripts/quick_metrics.py
 
-# Run specific test
-python tests/test_builder.py
+# Convert checkpoint format
+python scripts/convert_checkpoint.py
 
 # GPU monitoring
 nvidia-smi -l 2
 
 # Clear GPU cache
 python -c "import torch; torch.cuda.empty_cache(); print('Cache cleared')"
-
-# Kill training (Ctrl+C, then:)
-nvidia-smi | findstr python
-# taskkill /F /PID <PID>
 ```
+
 
 ---
 
@@ -580,39 +530,21 @@ nvidia-smi | findstr python
 
 | Issue | Solution |
 |-------|----------|
-| **Out of Memory (OOM)** | Reduce `--max_sessions` to 3 or 5. Close browser and GPU-heavy apps. Restart to clear VRAM. Fallback: use Qwen2.5-1.5B-Instruct |
-| **Chat template errors** | `pip install --upgrade transformers`. Use `tokenizer.apply_chat_template()` instead of manual formatting |
-| **BitsAndBytes installation fails** | Ensure CUDA toolkit matches PyTorch version. Try `pip install bitsandbytes==0.41.3` |
-| **Slow training** | Increase `gradient_accumulation_steps` to 8. Lower `max_seq_length` to 1024. Reduce `max_sessions` to 5 |
-| **Low accuracy** | Check data preprocessing. Ensure belief dimension 768. Try lowering initial τ to 0.2. Increase training epochs |
-| **Write rate too high** | Threshold not annealing correctly. Verify scheduler in `train_3b.py`. Increase `threshold.initial` |
-| **Write rate too low** | Decrease `threshold.initial`. Increase `loss_weights.sparsity` |
-| **Import errors** | Run from project root: `cd AdaptiveBelief`. Add project to PYTHONPATH: `$env:PYTHONPATH = "."` |
-| **CUDA not available** | Reinstall PyTorch with correct CUDA version. Check `nvidia-smi` for driver version |
-| **Tokenizer padding issues** | Set `padding_side="right"` and `pad_token = eos_token` |
+| **Out of Memory (OOM)** | Use `batch_size=1`. Reduce `max_sessions` to 3. Close other GPU apps. |
+| **Slow training (>1 hour/epoch)** | Use optimized training: `python src/training/train_3b_optimized_full.py --epochs 5` |
+| **Low accuracy (<50%)** | Train for more epochs (10). Check data preprocessing. Use LoRA with r=16. |
+| **Zero accuracy (0%)** | Model output parsing issue. Use `scripts/final_evaluation.py` which has fixed parsing. |
+| **Checkpoint loading error** | Run `python scripts/convert_checkpoint.py` to fix format. |
+| **CUDA not available** | Reinstall PyTorch with correct CUDA version. Check `nvidia-smi`. |
+| **BitsAndBytes errors** | `pip install bitsandbytes==0.41.3`. Ensure CUDA toolkit matches. |
 
-### GPU Memory Optimization Tips
+### GPU Memory Usage
 
-```python
-# Monitor VRAM before training
-python -c "import torch; print(f'Free: {torch.cuda.memory_reserved()/1e9:.2f} GB')"
-
-# Clear cache between runs
-torch.cuda.empty_cache()
-torch.cuda.reset_peak_memory_stats()
-```
-
-### Fallback Options
-
-If Qwen2.5-3B is too large for your GPU:
-
-```yaml
-# config/rtx3060_1.5b.yaml
-base_model: "Qwen/Qwen2.5-1.5B-Instruct"
-belief_dim: 512
-training:
-  max_sessions: 15
-```
+| Configuration | VRAM Used | Time/Epoch |
+|---------------|-----------|------------|
+| Full model (3B) | 8-10 GB | ~60 min |
+| LoRA (optimized) | 6-8 GB | ~15 min |
+| LoRA + batch_size=1 | 5-7 GB | ~12 min |
 
 ---
 
@@ -658,22 +590,16 @@ copies or substantial portions of the Software.
 
 ---
 
-*All source files are fully implemented and tested on RTX 3060 12GB VRAM. This README provides a self‑contained guide to reproduce all results from scratch.*
+*All source files are fully implemented and tested on RTX 3060 12GB VRAM. Optimized training reduces epoch time from 1 hour to ~15 minutes using LoRA.*
+
 
 ```angular2html
-python scripts/test_setup.py
-```
-```angular2html
-python src/training/train_3b_optimized.py
-```
+# Evaluate using the trained LoRA model (default: outputs/best_lora_model)
+python scripts/final_evaluation_with_lora.py
 
-```angular2html
-# Train for 5 epochs (takes ~1-2 hours total)
-python src/training/train_3b_optimized_full.py --epochs 5
+# Evaluate with a specific LoRA checkpoint
+python scripts/final_evaluation_with_lora.py --lora_path outputs/checkpoints/epoch_5
 
-# Test the trained model
-python scripts/test_trained_model.py
-
-# Run final evaluation
-python scripts/final_evaluation.py
+# Evaluate only 50 samples for quick testing
+python scripts/final_evaluation_with_lora.py --max_samples 50
 ```
