@@ -215,14 +215,15 @@ AdaptiveBelief/
 ├── scripts/
 │   ├── run_experiment.py          # CLI entry point for any single experiment
 │   ├── evaluate_all.py            # Runs all baselines and ablations, saves CSV
-│   ├── visualize_traces.py        # Generates trace visualizations
-│   ├── evaluate_with_metrics.py   # Full evaluation with F1 and BLEU scores
-│   ├── evaluate_with_metrics_fixed.py  # Fixed evaluation script
 │   ├── final_evaluation.py        # Comprehensive final evaluation
+│   ├── final_evaluation_with_lora.py        # Comprehensive final evaluation with LoRA attach
 │   ├── test_setup.py              # Test GPU and model setup
 │   ├── test_trained_model.py      # Test trained LoRA model
-│   └── simple_test.py             # Quick model test
-│
+│   ├── minimal_inference.py      # Sample Inference Check
+│   ├── simple_eval.py            # 
+│   ├── convert_checkpoint.py     # best checkpoint
+│   └── validate_data.py          # Data Validate
+│ 
 ├── outputs/
 │   ├── checkpoints/
 │   ├── logs/
