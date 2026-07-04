@@ -116,6 +116,7 @@ class BeliefRetriever(nn.Module):
         if aggregated.dtype != torch.float32:
             aggregated = aggregated.float()
 
+        # find decision trace
         trace_features = self.trace_decoder(aggregated)
 
         # Generate entities
@@ -130,7 +131,7 @@ class BeliefRetriever(nn.Module):
         # Generate evidence
         evidence_features = self.evidence_head(trace_features)
 
-        # Construct structured trace
+        # Construct structured trace (decision trace)
         trace = {
             "trace_id": f"step_{step}",
             "timestamp": datetime.now().isoformat(),
