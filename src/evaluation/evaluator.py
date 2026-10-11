@@ -67,7 +67,7 @@ class AdaptiveBeliefEvaluator:
 
         if writes > 0:
             beliefs_stack = torch.stack(belief_state.get_belief_history())
-            uncertainties_stack = torch.tensor([u.item() for u in uncertainties])
+            uncertainties_stack = torch.tensor([u.item() for u in uncertainty])
             trace, _ = self.trainer.retriever(beliefs_stack, uncertainties_stack,
                                               len(session_texts), 0, "")
             prompt = self.trainer.prompt_builder.build_prompt(trace, question, choices)

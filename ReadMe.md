@@ -192,10 +192,7 @@ AdaptiveBelief/
 │   ├── training/
 │   │   ├── __init__.py
 │   │   ├── train_3b.py            # Main training loop with threshold annealing
-│   │   ├── train_3b_optimized.py  # Optimized training (faster)
 │   │   ├── train_3b_optimized_full.py  # Full optimized training with LoRA
-│   │   ├── train_3b_fixed.py      # Fixed training with proper causal LM
-│   │   ├── train_3b_resume.py     # Resume training from checkpoint
 │   │   ├── losses.py              # L_task, L_uncertainty, L_sparsity, L_compression
 │   │   ├── optimizer.py           # AdamW with phase-based LR schedule
 │   │   └── data_loader.py         # LoCoMo batch loader
@@ -215,12 +212,7 @@ AdaptiveBelief/
 ├── scripts/
 │   ├── run_experiment.py          # CLI entry point for any single experiment
 │   ├── evaluate_all.py            # Runs all baselines and ablations, saves CSV
-│   ├── final_evaluation.py        # Comprehensive final evaluation
 │   ├── final_evaluation_with_lora.py        # Comprehensive final evaluation with LoRA attach
-│   ├── test_setup.py              # Test GPU and model setup
-│   ├── test_trained_model.py      # Test trained LoRA model
-│   ├── minimal_inference.py      # Sample Inference Check
-│   ├── simple_eval.py            # 
 │   ├── convert_checkpoint.py     # best checkpoint
 │   └── validate_data.py          # Data Validate
 │ 

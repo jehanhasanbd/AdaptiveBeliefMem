@@ -14,13 +14,18 @@ import os
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
+# Memory Component
 from src.memory.builder_3b import QuantizedBuilder3B
 from src.memory.uncertainty import UncertaintyEstimator
 from src.memory.retriever import BeliefRetriever
 from src.memory.belief_state import BeliefState
+
+# Reasoner Component
 from src.reasoner.frozen_llm_3b import QuantizedReasoner3B
 from src.reasoner.prompt_builder import PromptBuilder
 from src.reasoner.output_parser import OutputParser
+
+# Training Component
 from src.training.losses import AdaptiveBeliefLoss
 from src.training.optimizer import create_optimizer, get_phase_lr
 from src.training.data_loader import LoCoMoDataLoader

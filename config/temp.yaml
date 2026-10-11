@@ -49,8 +49,7 @@ training:
   max_grad_norm: 1.0
   max_seq_length: 2048
   max_sessions: 10
-  num_epochs: 5
+  num_epochs: 10
   save_steps: 500
   warmup_steps: 100
   weight_decay: 0.01
-use_history: true
