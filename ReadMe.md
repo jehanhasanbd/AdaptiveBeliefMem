@@ -16,10 +16,6 @@ AdaptiveBelief is a memory framework that tightly couples an **implicit belief s
 - [Training](#training)
 - [Evaluation](#evaluation)
 - [Experiments](#experiments)
-- [Metrics & Expected Results](#metrics--expected-results)
-- [Quick Reference](#quick-reference)
-- [Troubleshooting](#troubleshooting)
-- [Citation](#citation)
 
 ---
 
@@ -105,12 +101,10 @@ Training uses a composite loss with uncertainty calibration, sparsity penalty, c
 
 ## Installation
 
-
-
 ```angular2html
 # Clone and enter project
-git clone <repo-url> AdaptiveBelief
-cd AdaptiveBelief
+git clone https://github.com/jehanhasanbd/AdaptiveBeliefMem
+cd AdaptiveBeliefMem
 
 # Create virtual environment (Python 3.10+)
 python -m venv .venv
@@ -233,68 +227,6 @@ AdaptiveBelief/
 
 ---
 
-## Configuration
-
-The main training config for RTX 3060 is `config/rtx3060_3b.yaml`:
-
-```yaml
-base_model: "Qwen/Qwen2.5-3B-Instruct"
-model_type: "causal_lm"
-belief_dim: 768
-hidden_dim: 256
-
-quantization:
-  load_in_4bit: true
-  bnb_4bit_compute_dtype: "float16"
-  bnb_4bit_quant_type: "nf4"
-  bnb_4bit_use_double_quant: true
-
-training:
-  batch_size: 1
-  gradient_accumulation_steps: 4
-  learning_rate: 2e-5
-  num_epochs: 10
-  warmup_steps: 100
-  weight_decay: 0.01
-  max_seq_length: 2048
-  max_sessions: 10
-  save_steps: 500
-  eval_steps: 100
-  logging_steps: 10
-  max_grad_norm: 1.0
-
-lora:
-  r: 16
-  alpha: 32
-  dropout: 0.1
-  target_modules: ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
-
-loss_weights:
-  task: 1.0
-  uncertainty: 0.5
-  sparsity: 0.1
-  compression: 0.2
-
-threshold:
-  initial: 0.3
-  final: 0.7
-  anneal_steps: 500
-
-top_k:
-  dynamic: true
-  base_k: 3
-
-data:
-  train_file: "data/processed/train.json"
-  val_file: "data/processed/val.json"
-  test_file: "data/processed/test.json"
-
-output:
-  checkpoint_dir: "outputs/checkpoints"
-  log_dir: "outputs/logs"
-  result_dir: "outputs/results"
-  trace_dir: "outputs/traces"
-```
 
 Loss coefficients and threshold annealing schedule:
 
@@ -341,61 +273,17 @@ This creates `train.json`, `val.json`, `test.json` (70/15/15 split). Each exampl
 
 ## Training
 
-### Quick Setup Test
 ```angular2html
-# Test GPU and model loading
-python scripts/test_setup.py
-```
-
-### Optimized Training (Recommended - 5x faster)
-
-The optimized training uses LoRA to train only ~30M parameters instead of 3B, reducing epoch time from 1 hour to ~15 minutes:
-
-```angular2html
-# Train for 5 epochs (takes ~1-2 hours total)
-python src/training/train_3b_optimized_full.py --epochs 5
-
-# Train for 10 epochs (takes ~2-3 hours total)
-python src/training/train_3b_optimized_full.py --epochs 10
-```
-
-### Resume Training from Checkpoint
-
-```angular2html
-# Train first 5 epochs
-python src/training/train_3b_resume.py --epochs 5
-
-# Resume to train 5 more (total 10)
-python src/training/train_3b_resume.py --resume outputs/checkpoints/epoch_5 --epochs 10
-```
-
-### Quick Test (Smoke Test)
-```angular2html
-# Quick test with 3 sessions
+# Quick test (3 sessions)
 python src/training/train_3b.py --config config/rtx3060_3b.yaml --quick_test --max_sessions 3
+
+# Optimized training (5 epochs)
+python src/training/train_3b_optimized_full.py --epochs 5
 ```
-
-### Training Features:
-- **LoRA fine-tuning**: Only trains 29.9M parameters (vs 3B)
-- **Mixed precision**: FP16 for faster training
-- **Gradient accumulation**: Simulates larger batches
-- **Learning rate scheduling**: Warmup + linear decay
-- **Checkpoint saving**: Every epoch with best model tracking
-
-**Monitor GPU usage:**
-```angular2html
-nvidia-smi -l 2
-```
-
 ---
 
 ## Evaluation
 
-### Test the Trained Model
-```angular2html
-# Test trained LoRA model on sample questions
-python scripts/test_trained_model.py
-```
 
 ### Comprehensive Evaluation with F1 and BLEU Scores
 ```angular2html
@@ -408,94 +296,11 @@ python scripts/final_evaluation.py
 python scripts/final_evaluation_with_lora.py
 ```
 
-### Quick Baseline Evaluation (No LLM)
-```angular2html
-# Random and majority baselines
-python scripts/quick_metrics.py
-```
 
-### Evaluate with Checkpoint
-```angular2html
-# Convert checkpoint if needed
-python scripts/convert_checkpoint.py
-
-# Run evaluation
-python scripts/run_experiment.py --mode eval --checkpoint outputs/checkpoints/best_model_3b.pt
-```
-
----
-
-## Metrics & Results
-
-### Evaluation Metrics
-
-| Metric | Definition | Target |
-|--------|------------|--------|
-| **Accuracy** | % correct answers | >65% after 5 epochs |
-| **F1 Score** | Token-level overlap | >0.60 after 5 epochs |
-| **BLEU Score** | N-gram overlap | >0.50 after 5 epochs |
-| **Explicit Write Rate** | % steps where u_t ≥ τ | 10–15% |
-| **Uncertainty Calibration (ECE)** | Expected Calibration Error | <0.1 |
-
-### Expected Learning Curve (5 Epochs)
-
-| Epoch | Accuracy | F1 Score | BLEU Score | Time |
-|-------|----------|----------|------------|------|
-| 0 (Baseline) | 25% | 0.00 | 0.00 | - |
-| 1 | 35-40% | 0.35 | 0.30 | 15 min |
-| 2 | 45-50% | 0.45 | 0.40 | 15 min |
-| 3 | 55-60% | 0.55 | 0.48 | 15 min |
-| 4 | 60-65% | 0.60 | 0.52 | 15 min |
-| 5 | 65-70% | 0.65 | 0.55 | 15 min |
-
-### Results by Question Type (After 5 Epochs)
-
-| Type | Accuracy | F1 Score | Samples |
-|------|----------|----------|---------|
-| Single Hop | 70-75% | 0.70 | 43 |
-| Multi Hop | 60-65% | 0.58 | 42 |
-| Temporal | 65-70% | 0.62 | 14 |
-| Open Domain | 60-65% | 0.55 | 116 |
-| Adversarial | 55-60% | 0.50 | 84 |
-| **Overall** | **65-70%** | **0.60** | **299** |
-
-### Sample Output
-
-```
-Epoch 5 completed in 14.5 min
-  Train Loss: 0.8234
-  Val Accuracy: 67.34%
-  Per-type Accuracy:
-    adversarial: 58.33%
-    multi_hop: 61.90%
-    open_domain: 62.07%
-    single_hop: 74.42%
-    temporal_reasoning: 64.29%
-  ✓ Saved best model (accuracy: 67.34%)
-```
-
----
 
 ## Quick Reference
 
 ```angular2html
-# Setup test
-python scripts/test_setup.py
-
-# Quick test (3 sessions)
-python src/training/train_3b.py --config config/rtx3060_3b.yaml --quick_test --max_sessions 3
-
-# Optimized training (5 epochs, ~1-2 hours)
-python src/training/train_3b_optimized_full.py --epochs 5
-
-# Optimized training (10 epochs, ~2-3 hours)
-python src/training/train_3b_optimized_full.py --epochs 10
-
-# Resume training from checkpoint
-python src/training/train_3b_resume.py --resume outputs/checkpoints/epoch_5 --epochs 10
-
-# Test trained model
-python scripts/test_trained_model.py
 
 # Full evaluation with F1 and BLEU
 python scripts/final_evaluation.py
@@ -503,90 +308,6 @@ python scripts/final_evaluation.py
 # Evaluate using the trained LoRA model (default: outputs/best_lora_model)
 python scripts/final_evaluation_with_lora.py
 
-# Quick baseline metrics (random + majority)
-python scripts/quick_metrics.py
-
-# Convert checkpoint format
-python scripts/convert_checkpoint.py
-
-# GPU monitoring
-nvidia-smi -l 2
-
-# Clear GPU cache
-python -c "import torch; torch.cuda.empty_cache(); print('Cache cleared')"
-```
-
-
----
-
-## Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| **Out of Memory (OOM)** | Use `batch_size=1`. Reduce `max_sessions` to 3. Close other GPU apps. |
-| **Slow training (>1 hour/epoch)** | Use optimized training: `python src/training/train_3b_optimized_full.py --epochs 5` |
-| **Low accuracy (<50%)** | Train for more epochs (10). Check data preprocessing. Use LoRA with r=16. |
-| **Zero accuracy (0%)** | Model output parsing issue. Use `scripts/final_evaluation.py` which has fixed parsing. |
-| **Checkpoint loading error** | Run `python scripts/convert_checkpoint.py` to fix format. |
-| **CUDA not available** | Reinstall PyTorch with correct CUDA version. Check `nvidia-smi`. |
-| **BitsAndBytes errors** | `pip install bitsandbytes==0.41.3`. Ensure CUDA toolkit matches. |
-
-### GPU Memory Usage
-
-| Configuration | VRAM Used | Time/Epoch |
-|---------------|-----------|------------|
-| Full model (3B) | 8-10 GB | ~60 min |
-| LoRA (optimized) | 6-8 GB | ~15 min |
-| LoRA + batch_size=1 | 5-7 GB | ~12 min |
-
----
-
-## Citation
-
-If you use AdaptiveBelief in your research, please cite:
-
-```bibtex
-@misc{adaptivebelief2025,
-  author = {AdaptiveBelief Team},
-  title = {AdaptiveBelief: Uncertainty-Gated Implicit-Explicit Memory for Long-Horizon AI Agents},
-  year = {2025},
-  note = {Built with Qwen2.5-3B-Instruct on LoCoMo},
-  howpublished = {\url{https://github.com/adaptivebelief/AdaptiveBelief}}
-}
-```
-
----
-
-## License
-
-MIT License
-
-Copyright (c) 2025 AdaptiveBelief Team
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
----
-
-## Contact & Support
-
-- **Issues**: Please open a GitHub issue
-- **Questions**: Email the AdaptiveBelief team
-- **Contributions**: Pull requests welcome
-
----
-
-*All source files are fully implemented and tested on RTX 3060 12GB VRAM. Optimized training reduces epoch time from 1 hour to ~15 minutes using LoRA.*
-
-
-```angular2html
 # Evaluate using the trained LoRA model (default: outputs/best_lora_model)
 python scripts/final_evaluation_with_lora.py
 
@@ -595,4 +316,5 @@ python scripts/final_evaluation_with_lora.py --lora_path outputs/checkpoints/epo
 
 # Evaluate only 50 samples for quick testing
 python scripts/final_evaluation_with_lora.py --max_samples 50
+
 ```

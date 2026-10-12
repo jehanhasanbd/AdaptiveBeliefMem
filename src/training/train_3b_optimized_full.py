@@ -16,6 +16,7 @@ import sys
 import os
 import time
 import re
+import matplotlib.pyplot as plt
 
 
 class OptimizedDataset(Dataset):
@@ -257,6 +258,9 @@ Answer:"""
 
         best_accuracy = 0
 
+        epoch_losses = []
+        epoch_val_accuracies = []
+
         for epoch in range(self.config["training"]["num_epochs"]):
             self.model.train()
             total_loss = 0
@@ -273,6 +277,9 @@ Answer:"""
 
             # Validate
             val_accuracy, type_accuracy = self.validate()
+
+            epoch_losses.append(avg_loss)
+            epoch_val_accuracies.append(val_accuracy)
 
             print(f"\nEpoch {epoch + 1} completed in {epoch_time / 60:.2f} min")
             print(f"  Train Loss: {avg_loss:.4f}")
@@ -291,6 +298,24 @@ Answer:"""
                 print(f"  ✓ Saved best model (accuracy: {best_accuracy * 100:.2f}%)")
 
             print("-" * 50)
+
+        # Plot epoch vs loss graph
+        os.makedirs("outputs/plots", exist_ok=True)
+
+        plt.figure(figsize=(10, 6))
+        epochs_range = range(1, len(epoch_losses) + 1)
+        plt.plot(epochs_range, epoch_losses, marker='o', linewidth=2, markersize=8, label='Train Loss', color='#2E86AB')
+        plt.xlabel('Epoch', fontsize=13)
+        plt.ylabel('Loss', fontsize=13)
+        plt.title('Training Loss vs Epoch', fontsize=15, fontweight='bold')
+        plt.xticks(epochs_range)
+        plt.grid(True, alpha=0.3)
+        plt.legend(fontsize=11)
+        plt.tight_layout()
+        loss_plot_path = "outputs/plots/loss_vs_epoch.png"
+        plt.savefig(loss_plot_path, dpi=150)
+        plt.close()
+        print(f"\n📊 Loss vs Epoch graph saved to: {loss_plot_path}")
 
         print(f"\nTraining complete! Best accuracy: {best_accuracy * 100:.2f}%")
         return best_accuracy
