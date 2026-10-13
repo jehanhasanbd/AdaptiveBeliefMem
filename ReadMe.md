@@ -103,7 +103,6 @@ Training uses a composite loss with uncertainty calibration, sparsity penalty, c
 
 ```angular2html
 # Clone and enter project
-git clone https://github.com/jehanhasanbd/AdaptiveBeliefMem
 cd AdaptiveBeliefMem
 
 # Create virtual environment (Python 3.10+)
